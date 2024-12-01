@@ -1,0 +1,38 @@
+{
+  "Timimoun": {
+    "previousWilaya": "adrar",
+    "previousId": "1"
+  },
+  "Bordj Badji Mokhtar": {
+    "previousWilaya": "adrar",
+    "previousId": "1"
+  },
+  "Beni Abbes": {
+    "previousWilaya": "Béchar",
+    "previousId": "8"
+  },
+  "In Salah": {
+    "previousWilaya": "Tamanrasset",
+    "previousId": "11"
+  },
+  "In Guezzam": {
+    "previousWilaya": "Tamanrasset",
+    "previousId": "11"
+  },
+  "Touggourt": {
+    "previousWilaya": "Ouargla",
+    "previousId": "30"
+  },
+  "Djanet": {
+    "previousWilaya": "Illizi",
+    "previousId": "33"
+  },
+  "El M'Ghair": {
+    "previousWilaya": "El Oued",
+    "previousId": "39"
+  },
+  "El Meniaa": {
+    "previousWilaya": "Ghardaïa",
+    "previousId": "47"
+  }
+}

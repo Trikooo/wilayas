@@ -5,15 +5,40 @@ import { parse } from "csv-parse/sync";
 interface Wilaya {
   id: string;
   communes: string[];
-  noestStations: NoestStation[];
+  noest: {
+    stations: NoestStation[];
+    prices: {
+      home: number;
+      stopDesk: number;
+    };
+  };
+  legacyData?: {
+    previousWilaya: string;
+    previousId: string;
+  };
 }
 
 interface WilayaData {
   [wilayaName: string]: Wilaya;
 }
+
 interface NoestStation {
   commune: string;
   stationCode: string;
+}
+
+interface DeliveryPrice {
+  tarif_id: number;
+  wilaya_id: number;
+  tarif: string;
+  tarif_stopdesk: string;
+}
+
+interface LegacyData {
+  [communeName: string]: {
+    previousWilaya: string;
+    previousId: string;
+  };
 }
 
 function parseStopDeskStations(filePath: string): Map<string, string> {
@@ -94,10 +119,33 @@ function parseCommunes(
   return communesByWilaya;
 }
 
+function loadDeliveryPrices(
+  filePath: string
+): Map<string, { home: number; stopDesk: number }> {
+  const rawData = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+  const pricesMap = new Map<string, { home: number; stopDesk: number }>();
+
+  for (const key in rawData.delivery) {
+    const priceData = rawData.delivery[key];
+    pricesMap.set(priceData.wilaya_id.toString(), {
+      home: parseInt(priceData.tarif),
+      stopDesk: parseInt(priceData.tarif_stopdesk),
+    });
+  }
+
+  return pricesMap;
+}
+
+function loadLegacyData(filePath: string): LegacyData {
+  return JSON.parse(fs.readFileSync(filePath, "utf-8"));
+}
+
 function transformData(
   stationsMap: Map<string, string>,
   wilayasMap: Map<string, string>,
-  communesMap: Map<string, { wilayaCode: string; communes: string[] }>
+  communesMap: Map<string, { wilayaCode: string; communes: string[] }>,
+  deliveryPricesMap: Map<string, { home: number; stopDesk: number }>,
+  legacyData: LegacyData
 ): WilayaData {
   const result: WilayaData = {};
 
@@ -118,7 +166,6 @@ function transformData(
             const isAlreadyAdded = noestStations.some(
               (station) => station.commune === stationName
             );
-            console.log(isAlreadyAdded);
             if (!isAlreadyAdded) {
               noestStations.push({
                 commune: stationName,
@@ -129,30 +176,73 @@ function transformData(
         }
       }
 
-      result[wilayaName] = {
+      // Get delivery prices
+      const prices = deliveryPricesMap.get(wilayaCode) || {
+        home: 0,
+        stopDesk: 0,
+      };
+
+      // Check for legacy data
+      const legacyEntry = Object.entries(legacyData).find(([commune]) =>
+        communeData.communes.includes(commune)
+      );
+
+      const wilayaEntry: Wilaya = {
         id: wilayaCode,
         communes: communeData.communes,
-        noestStations,
+        noest: {
+          stations: noestStations,
+          prices: {
+            home: prices.home,
+            stopDesk: prices.stopDesk,
+          },
+        },
       };
+
+      // Add legacy data if exists
+      if (legacyEntry) {
+        wilayaEntry.legacyData = {
+          previousWilaya: legacyEntry[1].previousWilaya,
+          previousId: legacyEntry[1].previousId,
+        };
+      }
+
+      result[wilayaName] = wilayaEntry;
     }
   }
 
   return result;
 }
+
 function main() {
-  const stationsMap = parseStopDeskStations("./data/stopdesk_stations.csv");
-  const wilayasMap = parseWilayas("./data/code_wilayas.csv");
-  const communesMap = parseCommunes("./data/communes.csv");
+  // Construct file paths
+  const dataDir = "./data";
+  const stationsFilePath = path.join(dataDir, "stopdesk_stations.csv");
+  const wilayasFilePath = path.join(dataDir, "code_wilayas.csv");
+  const communesFilePath = path.join(dataDir, "communes.csv");
+  const deliveryPricesFilePath = path.join(dataDir, "deliveryPrices.json");
+  const legacyDataFilePath = path.join(dataDir, "legacyData.json");
 
-  const transformedData = transformData(stationsMap, wilayasMap, communesMap);
+  // Parse data
+  const stationsMap = parseStopDeskStations(stationsFilePath);
+  const wilayasMap = parseWilayas(wilayasFilePath);
+  const communesMap = parseCommunes(communesFilePath);
+  const deliveryPricesMap = loadDeliveryPrices(deliveryPricesFilePath);
+  const legacyData = loadLegacyData(legacyDataFilePath);
 
-  // Write to JSON file
-  fs.writeFileSync(
-    "wilayaData.json",
-    JSON.stringify(transformedData, null, 2)
+  // Transform data
+  const transformedData = transformData(
+    stationsMap,
+    wilayasMap,
+    communesMap,
+    deliveryPricesMap,
+    legacyData
   );
 
-  console.log("Data transformation complete. Output saved to wilaya_data.json");
+  // Write to JSON file
+  fs.writeFileSync("wilayaData.json", JSON.stringify(transformedData, null, 2));
+
+  console.log("Data transformation complete. Output saved to wilayaData.json");
 }
 
 // Uncomment to run
@@ -163,5 +253,7 @@ export {
   parseWilayas,
   parseCommunes,
   transformData,
+  loadDeliveryPrices,
+  loadLegacyData,
   main,
 };

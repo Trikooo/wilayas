@@ -1,0 +1,35 @@
+{
+  "Adrar": {
+    "id": "1",
+    "communes": [
+      "Adrar",
+      "Akabli",
+      "Aoulef",
+      "Bouda",
+      "Fenoughil",
+      "Inozghmir",
+      "O Ahmed Timmi",
+      "Reggane",
+      "Sali",
+      "Sbaa",
+      "Tamentit",
+      "Tamest",
+      "Timokten",
+      "Tit",
+      "Tsabit",
+      "Zaouiet Kounta"
+    ],
+    "noest": {
+      "stations": [
+        {
+          "commune": "Adrar",
+          "stationCode": "1A"
+        }
+      ],
+      "prices": {
+        "home": 1500,
+        "stopDesk": 1000
+      }
+    }
+  }
+}
